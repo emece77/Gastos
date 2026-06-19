@@ -839,23 +839,34 @@ function procesarTicket(input) {
   status.textContent = '🔍 Analizando...';
   status.style.color = 'var(--accent-text)';
 
-  // Preview + OCR juntos desde el mismo FileReader
+  // Preview + compresión + OCR
   var reader = new FileReader();
   reader.onload = function(e) {
-    var b64 = e.target.result;
-    document.getElementById('ticket-img').src = b64;
+    var b64original = e.target.result;
+    document.getElementById('ticket-img').src = b64original;
     document.getElementById('ticket-preview').style.display = '';
 
-    var formData = new FormData();
-    formData.append('apikey', 'K84350602688957');
-    formData.append('language', 'spa');
-    formData.append('isOverlayRequired', 'false');
-    formData.append('base64Image', b64);
+    // Comprimir via canvas antes de mandar
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var maxW = 1200;
+      var scale = img.width > maxW ? maxW / img.width : 1;
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      var b64 = canvas.toDataURL('image/jpeg', 0.7);
 
-    fetch('https://api.ocr.space/parse/image', {
-      method: 'POST',
-      body: formData
-    })
+      var formData = new FormData();
+      formData.append('apikey', 'K84350602688957');
+      formData.append('language', 'spa');
+      formData.append('isOverlayRequired', 'false');
+      formData.append('base64Image', b64);
+
+      fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData
+      })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (!data.ParsedResults || !data.ParsedResults[0]) {
@@ -946,9 +957,11 @@ function procesarTicket(input) {
     status.style.color = detectados.length > 0 ? 'var(--pos)' : 'var(--amber)';
   })
   .catch(function(err) {
-      status.textContent = '❌ Error de conexión';
-      status.style.color = 'var(--neg)';
-    });
+        status.textContent = '❌ Error de conexión';
+        status.style.color = 'var(--neg)';
+      });
+    };
+    img.src = b64original;
   };
   reader.readAsDataURL(file);
 }
