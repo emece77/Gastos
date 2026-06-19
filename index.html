@@ -839,25 +839,23 @@ function procesarTicket(input) {
   status.textContent = '🔍 Analizando...';
   status.style.color = 'var(--accent-text)';
 
-  // Preview de imagen
+  // Preview + OCR juntos desde el mismo FileReader
   var reader = new FileReader();
   reader.onload = function(e) {
-    document.getElementById('ticket-img').src = e.target.result;
+    var b64 = e.target.result;
+    document.getElementById('ticket-img').src = b64;
     document.getElementById('ticket-preview').style.display = '';
-  };
-  reader.readAsDataURL(file);
 
-  // OCR — dentro de una función separada para usar el file directamente
-  var formData = new FormData();
-  formData.append('apikey', 'K84350602688957');
-  formData.append('language', 'spa');
-  formData.append('isOverlayRequired', 'false');
-  formData.append('file', file, 'ticket.jpg');
+    var formData = new FormData();
+    formData.append('apikey', 'K84350602688957');
+    formData.append('language', 'spa');
+    formData.append('isOverlayRequired', 'false');
+    formData.append('base64Image', b64);
 
-  fetch('https://api.ocr.space/parse/image', {
-    method: 'POST',
-    body: formData
-  })
+    fetch('https://api.ocr.space/parse/image', {
+      method: 'POST',
+      body: formData
+    })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (!data.ParsedResults || !data.ParsedResults[0]) {
@@ -948,9 +946,11 @@ function procesarTicket(input) {
     status.style.color = detectados.length > 0 ? 'var(--pos)' : 'var(--amber)';
   })
   .catch(function(err) {
-    status.textContent = '❌ Error de conexión';
-    status.style.color = 'var(--neg)';
-  });
+      status.textContent = '❌ Error de conexión';
+      status.style.color = 'var(--neg)';
+    });
+  };
+  reader.readAsDataURL(file);
 }
 
 // Service Worker
