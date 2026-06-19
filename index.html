@@ -296,11 +296,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <span id="ticket-status" style="font-size:11px; color:var(--muted); margin-top:4px; display:block;"></span>
       </div>
 
-      <!-- Preview foto al final del formulario -->
-      <div id="ticket-preview" style="display:none;">
-        <img id="ticket-img" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover">
-      </div>
-
       <div class="field-row">
         <div class="field">
           <div class="field-label">Fecha</div>
@@ -356,6 +351,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
       <input id="f-ticket-input" type="file" accept="image/*" capture="environment"
         style="display:none" onchange="procesarTicket(this)">
+
+    <div id="ticket-preview" style="display:none; margin-top:4px;">
+        <img id="ticket-img" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover">
+      </div>
 
     </div>
     <div class="modal-footer">
