@@ -835,7 +835,11 @@ function procesarTicket(input) {
   var file = input.files[0];
   if (!file) return;
 
-  // Mostrar preview
+  var status = document.getElementById('ticket-status');
+  status.textContent = '🔍 Analizando...';
+  status.style.color = 'var(--accent-text)';
+
+  // Preview de imagen
   var reader = new FileReader();
   reader.onload = function(e) {
     document.getElementById('ticket-img').src = e.target.result;
@@ -843,32 +847,25 @@ function procesarTicket(input) {
   };
   reader.readAsDataURL(file);
 
-  // OCR con Tesseract
-  var status = document.getElementById('ticket-status');
-  status.textContent = '🔍 Leyendo...';
-  status.style.color = 'var(--accent-text)';
+  // OCR — dentro de una función separada para usar el file directamente
+  var formData = new FormData();
+  formData.append('apikey', 'K84350602688957');
+  formData.append('language', 'spa');
+  formData.append('isOverlayRequired', 'false');
+  formData.append('file', file, 'ticket.jpg');
 
-  status.textContent = '🔍 Analizando...';
-    document.getElementById('ticket-status').textContent = 'Archivo: ' + file.name + ' ' + file.size + 'b';
-
-    var formData = new FormData();
-    formData.append('apikey', 'K84350602688957');
-    formData.append('language', 'spa');
-    formData.append('isOverlayRequired', 'false');
-    formData.append('file', file, 'ticket.jpg');
-
-    fetch('https://api.ocr.space/parse/image', {
-      method: 'POST',
-      body: formData
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data.ParsedResults || !data.ParsedResults[0]) {
-        status.textContent = '❌ Código: ' + data.OCRExitCode + ' — ' + JSON.stringify(data.ErrorMessage);
-        status.style.color = 'var(--neg)';
-        return;
-      }
-      var texto = data.ParsedResults[0].ParsedText;
+  fetch('https://api.ocr.space/parse/image', {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.ParsedResults || !data.ParsedResults[0]) {
+      status.textContent = '❌ ' + (data.OCRExitCode || 'Sin resultado');
+      status.style.color = 'var(--neg)';
+      return;
+    }
+    var texto = data.ParsedResults[0].ParsedText;
 
     // ── Importe ──────────────────────────────────────────────────────
     var patrones = [
@@ -878,42 +875,33 @@ function procesarTicket(input) {
     ];
     var candidatos = [];
     for (var p = 0; p < patrones.length; p++) {
+      var re = patrones[p]; re.lastIndex = 0;
       var match;
-      var re = patrones[p];
-      re.lastIndex = 0;
       while ((match = re.exec(texto)) !== null) {
-        var raw = match[1] || match[0];
-        raw = raw.replace(/\$/g, '').trim();
-        var num;
-        if (raw.indexOf(',') > raw.indexOf('.')) {
-          num = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
-        } else {
-          num = parseFloat(raw.replace(/,/g, ''));
-        }
+        var raw = (match[1] || match[0]).replace(/\$/g, '').trim();
+        var num = raw.indexOf(',') > raw.indexOf('.')
+          ? parseFloat(raw.replace(/\./g, '').replace(',', '.'))
+          : parseFloat(raw.replace(/,/g, ''));
         if (!isNaN(num) && num > 0) candidatos.push({ num: num, prioridad: p });
       }
     }
     if (candidatos.length > 0) {
       candidatos.sort(function(a, b) {
-        if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
-        return b.num - a.num;
+        return a.prioridad !== b.prioridad ? a.prioridad - b.prioridad : b.num - a.num;
       });
-      var mejor = candidatos[0].num;
-      document.getElementById('f-importe').value = mejor.toFixed(2);
+      document.getElementById('f-importe').value = candidatos[0].num.toFixed(2);
       calcValorPesos();
     }
 
-    // ── Proveedor — mostrar sugerencias ──────────────────────────────
+    // ── Proveedor — sugerencias ───────────────────────────────────────
     var lineas = texto.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
     var sugerencias = [];
     for (var li = 0; li < lineas.length && sugerencias.length < 3; li++) {
       var linea = lineas[li];
-      // Solo líneas con letras, no muy cortas, no solo números
       if (linea.length > 3 && /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(linea) && !/^\d+$/.test(linea)) {
         sugerencias.push(linea.slice(0, 30));
       }
     }
-    // Mostrar chips de sugerencia
     var contProv = document.getElementById('ticket-prov-sugerencias');
     if (contProv) contProv.remove();
     if (sugerencias.length > 0) {
@@ -931,30 +919,23 @@ function procesarTicket(input) {
         };
         cont.appendChild(btn);
       });
-      // Insertar debajo del campo proveedor
-      var fProv = document.getElementById('f-proveedor');
-      fProv.parentNode.appendChild(cont);
+      document.getElementById('f-proveedor').parentNode.appendChild(cont);
     }
 
     // ── Fecha ─────────────────────────────────────────────────────────
-    // Patrones: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
     var fechaMatch =
       texto.match(/(\d{2})\/(\d{2})\/(\d{4})/) ||
       texto.match(/(\d{2})-(\d{2})-(\d{4})/) ||
       texto.match(/(\d{4})-(\d{2})-(\d{2})/);
-
     if (fechaMatch) {
       var fechaISO;
       if (fechaMatch[0].indexOf('-') > -1 && fechaMatch[1].length === 4) {
-        // YYYY-MM-DD
         fechaISO = fechaMatch[1] + '-' + fechaMatch[2] + '-' + fechaMatch[3];
       } else {
-        // DD/MM/YYYY o DD-MM-YYYY
         fechaISO = fechaMatch[3] + '-' + fechaMatch[2] + '-' + fechaMatch[1];
       }
-      // Validar que sea una fecha razonable
-      var añoFecha = parseInt(fechaMatch[3] || fechaMatch[1]);
-      if (añoFecha >= 2020 && añoFecha <= 2030) {
+      var anio = parseInt(fechaMatch[3] || fechaMatch[1]);
+      if (anio >= 2020 && anio <= 2030) {
         document.getElementById('f-fecha').value = fechaISO;
       }
     }
@@ -962,23 +943,14 @@ function procesarTicket(input) {
     // ── Status ────────────────────────────────────────────────────────
     var detectados = [];
     if (candidatos.length > 0) detectados.push('$ ' + candidatos[0].num.toLocaleString('es-AR'));
-    if (proveedorDetectado) detectados.push(proveedorDetectado.slice(0, 15));
     if (fechaMatch) detectados.push(fechaMatch[0]);
-
-    if (detectados.length > 0) {
-      status.textContent = '✓ ' + detectados.join(' · ');
-      status.style.color = 'var(--pos)';
-    } else {
-      status.textContent = '⚠️ No se encontraron datos';
-      status.style.color = 'var(--amber)';
-    }
-
+    status.textContent = detectados.length > 0 ? '✓ ' + detectados.join(' · ') : '⚠️ No se encontraron datos';
+    status.style.color = detectados.length > 0 ? 'var(--pos)' : 'var(--amber)';
   })
-    .catch(function(err) {
-      status.textContent = '❌ Error al leer';
-      status.style.color = 'var(--neg)';
-      console.error('OCR error:', err);
-    });
+  .catch(function(err) {
+    status.textContent = '❌ Error de conexión';
+    status.style.color = 'var(--neg)';
+  });
 }
 
 // Service Worker
