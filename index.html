@@ -284,17 +284,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="modal-body">
 
       <div class="field">
-        <div class="field-label" style="display:flex; justify-content:space-between; align-items:center;">
-          <span>Proveedor</span>
+        <div class="field-label">Proveedor</div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input id="f-proveedor" type="text" placeholder="Ej: Supermercado Día" autocomplete="off" style="flex:1">
           <button type="button" onclick="document.getElementById('f-ticket-input').click()"
-            style="background:none; border:none; font-size:20px; cursor:pointer; padding:0; line-height:1;"
+            style="background:var(--surface2); border:1px solid var(--border2); border-radius:8px;
+                   width:38px; height:38px; font-size:18px; cursor:pointer; flex-shrink:0;
+                   display:flex; align-items:center; justify-content:center;"
             title="Sacar foto del ticket">📷</button>
         </div>
-        <input id="f-proveedor" type="text" placeholder="Ej: Supermercado Día" autocomplete="off">
         <span id="ticket-status" style="font-size:11px; color:var(--muted); margin-top:4px; display:block;"></span>
-        <div id="ticket-preview" style="display:none; margin-top:6px">
-          <img id="ticket-img" style="width:100%; border-radius:8px; max-height:150px; object-fit:cover">
-        </div>
+      </div>
+
+      <!-- Preview foto al final del formulario -->
+      <div id="ticket-preview" style="display:none;">
+        <img id="ticket-img" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover">
       </div>
 
       <div class="field-row">
