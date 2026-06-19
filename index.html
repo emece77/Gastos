@@ -861,7 +861,7 @@ function procesarTicket(input) {
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (!data.ParsedResults || !data.ParsedResults[0]) {
-      status.textContent = '❌ ' + (data.OCRExitCode || 'Sin resultado');
+      status.textContent = JSON.stringify(data).slice(0, 150);
       status.style.color = 'var(--neg)';
       return;
     }
