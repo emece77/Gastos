@@ -10,7 +10,6 @@
 <title>Gastos</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 <style>
 /* ── TOKENS (Opción B — Oscuro) ── */
 :root {
@@ -849,14 +848,25 @@ function procesarTicket(input) {
   status.textContent = '🔍 Leyendo...';
   status.style.color = 'var(--accent-text)';
 
-  Tesseract.recognize(file, 'spa', {
-    logger: function(m) {
-      if (m.status === 'recognizing text') {
-        status.textContent = '🔍 ' + Math.round(m.progress * 100) + '%';
+  // Convertir imagen a base64 para OCR.space
+  var reader2 = new FileReader();
+  reader2.onload = function(e) {
+    var base64 = e.target.result;
+    status.textContent = '🔍 Analizando...';
+
+    fetch('https://api.ocr.space/parse/image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'apikey=K84350602688957&language=spa&isOverlayRequired=false&base64Image=' + encodeURIComponent(base64)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ParsedResults || !data.ParsedResults[0]) {
+        status.textContent = '⚠️ No se pudo leer el ticket';
+        status.style.color = 'var(--amber)';
+        return;
       }
-    }
-  }).then(function(result) {
-    var texto = result.data.text;
+      var texto = data.ParsedResults[0].ParsedText;
 
     // ── Importe ──────────────────────────────────────────────────────
     var patrones = [
@@ -961,11 +971,14 @@ function procesarTicket(input) {
       status.style.color = 'var(--amber)';
     }
 
-  }).catch(function(err) {
-    status.textContent = '❌ Error al leer';
-    status.style.color = 'var(--neg)';
-    console.error('OCR error:', err);
-  });
+  })
+    .catch(function(err) {
+      status.textContent = '❌ Error al leer';
+      status.style.color = 'var(--neg)';
+      console.error('OCR error:', err);
+    });
+  };
+  reader2.readAsDataURL(file);
 }
 
 // Service Worker
