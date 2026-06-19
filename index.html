@@ -284,8 +284,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="modal-body">
 
       <div class="field">
-        <div class="field-label">Proveedor</div>
+        <div class="field-label" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Proveedor</span>
+          <button type="button" onclick="document.getElementById('f-ticket-input').click()"
+            style="background:none; border:none; font-size:20px; cursor:pointer; padding:0; line-height:1;"
+            title="Sacar foto del ticket">📷</button>
+        </div>
         <input id="f-proveedor" type="text" placeholder="Ej: Supermercado Día" autocomplete="off">
+        <span id="ticket-status" style="font-size:11px; color:var(--muted); margin-top:4px; display:block;"></span>
+        <div id="ticket-preview" style="display:none; margin-top:6px">
+          <img id="ticket-img" style="width:100%; border-radius:8px; max-height:150px; object-fit:cover">
+        </div>
       </div>
 
       <div class="field-row">
@@ -341,21 +350,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <input id="f-obs" type="text" placeholder="Opcional">
       </div>
 
-      <div class="field">
-        <div class="field-label">Foto del ticket</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <input id="f-ticket-input" type="file" accept="image/*" capture="environment"
-            style="display:none" onchange="procesarTicket(this)">
-          <button type="button" class="btn btn-outline" style="flex:1"
-            onclick="document.getElementById('f-ticket-input').click()">
-            📷 Sacar foto del ticket
-          </button>
-          <span id="ticket-status" style="font-size:12px; color:var(--muted)"></span>
-        </div>
-        <div id="ticket-preview" style="display:none; margin-top:8px">
-          <img id="ticket-img" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover">
-        </div>
-      </div>
+      <input id="f-ticket-input" type="file" accept="image/*" capture="environment"
+        style="display:none" onchange="procesarTicket(this)">
 
     </div>
     <div class="modal-footer">
