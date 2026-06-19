@@ -858,25 +858,20 @@ function procesarTicket(input) {
   }).then(function(result) {
     var texto = result.data.text;
 
-    // Buscar importes — patrón: números con punto/coma de miles y decimales
-    // Ej: 12.500,00 / 12500,00 / $ 1.234,56
+    // ── Importe ──────────────────────────────────────────────────────
     var patrones = [
       /(?:total|TOTAL|Total)[^\d]*(\d[\d.,]+)/g,
       /\$\s*(\d[\d.,]+)/g,
       /(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?)/g,
     ];
-
     var candidatos = [];
-
     for (var p = 0; p < patrones.length; p++) {
       var match;
       var re = patrones[p];
       re.lastIndex = 0;
       while ((match = re.exec(texto)) !== null) {
         var raw = match[1] || match[0];
-        // Normalizar: quitar $ y espacios, convertir a número
         raw = raw.replace(/\$/g, '').trim();
-        // Formato argentino: 1.234,56 → 1234.56
         var num;
         if (raw.indexOf(',') > raw.indexOf('.')) {
           num = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
@@ -886,25 +881,68 @@ function procesarTicket(input) {
         if (!isNaN(num) && num > 0) candidatos.push({ num: num, prioridad: p });
       }
     }
-
-    if (candidatos.length === 0) {
-      status.textContent = '⚠️ No se encontró importe';
-      status.style.color = 'var(--amber)';
-      return;
+    if (candidatos.length > 0) {
+      candidatos.sort(function(a, b) {
+        if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
+        return b.num - a.num;
+      });
+      var mejor = candidatos[0].num;
+      document.getElementById('f-importe').value = mejor.toFixed(2);
+      calcValorPesos();
     }
 
-    // Priorizar: primero los que tienen "TOTAL", luego el más grande
-    candidatos.sort(function(a, b) {
-      if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
-      return b.num - a.num;
-    });
+    // ── Proveedor ─────────────────────────────────────────────────────
+    // Primera línea no vacía del ticket suele ser el nombre del comercio
+    var lineas = texto.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+    var proveedorDetectado = '';
+    for (var li = 0; li < Math.min(5, lineas.length); li++) {
+      var linea = lineas[li];
+      // Ignorar líneas que parecen fechas, números o muy cortas
+      if (linea.length > 3 && !/^\d/.test(linea) && !/^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(linea)) {
+        proveedorDetectado = linea;
+        break;
+      }
+    }
+    if (proveedorDetectado && !document.getElementById('f-proveedor').value) {
+      document.getElementById('f-proveedor').value = proveedorDetectado;
+    }
 
-    var mejor = candidatos[0].num;
-    document.getElementById('f-importe').value = mejor.toFixed(2);
-    calcValorPesos();
+    // ── Fecha ─────────────────────────────────────────────────────────
+    // Patrones: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+    var fechaMatch =
+      texto.match(/(\d{2})\/(\d{2})\/(\d{4})/) ||
+      texto.match(/(\d{2})-(\d{2})-(\d{4})/) ||
+      texto.match(/(\d{4})-(\d{2})-(\d{2})/);
 
-    status.textContent = '✓ $ ' + mejor.toLocaleString('es-AR');
-    status.style.color = 'var(--pos)';
+    if (fechaMatch) {
+      var fechaISO;
+      if (fechaMatch[0].indexOf('-') > -1 && fechaMatch[1].length === 4) {
+        // YYYY-MM-DD
+        fechaISO = fechaMatch[1] + '-' + fechaMatch[2] + '-' + fechaMatch[3];
+      } else {
+        // DD/MM/YYYY o DD-MM-YYYY
+        fechaISO = fechaMatch[3] + '-' + fechaMatch[2] + '-' + fechaMatch[1];
+      }
+      // Validar que sea una fecha razonable
+      var añoFecha = parseInt(fechaMatch[3] || fechaMatch[1]);
+      if (añoFecha >= 2020 && añoFecha <= 2030) {
+        document.getElementById('f-fecha').value = fechaISO;
+      }
+    }
+
+    // ── Status ────────────────────────────────────────────────────────
+    var detectados = [];
+    if (candidatos.length > 0) detectados.push('$ ' + candidatos[0].num.toLocaleString('es-AR'));
+    if (proveedorDetectado) detectados.push(proveedorDetectado.slice(0, 15));
+    if (fechaMatch) detectados.push(fechaMatch[0]);
+
+    if (detectados.length > 0) {
+      status.textContent = '✓ ' + detectados.join(' · ');
+      status.style.color = 'var(--pos)';
+    } else {
+      status.textContent = '⚠️ No se encontraron datos';
+      status.style.color = 'var(--amber)';
+    }
 
   }).catch(function(err) {
     status.textContent = '❌ Error al leer';
