@@ -857,7 +857,7 @@ function procesarTicket(input) {
     fetch('https://api.ocr.space/parse/image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'apikey=K84350602688957&language=spa&isOverlayRequired=false&base64Image=' + encodeURIComponent(base64)
+      body: 'apikey=K84350602688957&language=spa&isOverlayRequired=false&filetype=JPG&base64Image=' + encodeURIComponent(base64)
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
