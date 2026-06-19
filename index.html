@@ -82,12 +82,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .kpi-row { display: flex; gap: 10px; padding: 10px 16px 6px; overflow-x: auto; scrollbar-width: none; }
 .kpi-row::-webkit-scrollbar { display: none; }
 .kpi-card {
-  flex: 1; min-width: 100px;
+  flex: 1; min-width: 90px;
   background: var(--surface); border: 1px solid var(--border2); border-radius: 12px;
-  padding: 12px 14px;
+  padding: 10px 10px;
 }
-.kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
-.kpi-value { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 600; color: var(--ink); }
+.kpi-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; white-space: nowrap; }
+.kpi-value { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi-value.accent { color: var(--accent-text); }
 .kpi-value.neg { color: var(--neg); }
 
@@ -245,6 +245,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <div class="kpi-label">Gastos</div>
         <div class="kpi-value accent" id="kpi-count">—</div>
       </div>
+    </div>
+    <!-- Buscador -->
+    <div style="padding: 10px 16px 4px;">
+      <input id="buscador" type="search" placeholder="Buscar en todos los gastos..."
+        style="width:100%; background:var(--surface2); border:1px solid var(--border2);
+               border-radius:8px; color:var(--ink); font-family:var(--font-ui);
+               font-size:14px; padding:9px 12px; outline:none; appearance:none;"
+        oninput="onBuscar()">
     </div>
     <!-- Lista -->
     <div class="section-header" id="list-header">Todos los gastos</div>
@@ -442,8 +450,29 @@ function gastosDelMes() {
   });
 }
 
+function onBuscar() {
+  var q = document.getElementById('buscador').value.trim();
+  // Si hay búsqueda activa, ocultar nav de mes
+  document.querySelector('.mes-nav').style.display = q ? 'none' : '';
+  renderGastosList();
+}
+
+function gastosFiltrados() {
+  var q = document.getElementById('buscador').value.trim().toLowerCase();
+  if (!q) return gastosDelMes();
+  return state.gastos.filter(function(g) {
+    return (
+      (g.proveedor        || '').toLowerCase().includes(q) ||
+      (g.categoria_nombre || '').toLowerCase().includes(q) ||
+      (g.subcategoria_nombre || '').toLowerCase().includes(q) ||
+      (g.observaciones    || '').toLowerCase().includes(q) ||
+      (g.fecha_compra     || '').includes(q)
+    );
+  });
+}
+
 function renderGastosList() {
-  var gastos = gastosDelMes();
+  var gastos = gastosFiltrados();
   var el = document.getElementById('gastos-list');
 
   // KPIs
