@@ -849,6 +849,7 @@ function procesarTicket(input) {
   status.style.color = 'var(--accent-text)';
 
   status.textContent = '🔍 Analizando...';
+    document.getElementById('ticket-status').textContent = 'Archivo: ' + file.name + ' ' + file.size + 'b';
 
     var formData = new FormData();
     formData.append('apikey', 'K84350602688957');
