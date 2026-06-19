@@ -862,6 +862,7 @@ function procesarTicket(input) {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      console.log('OCR response:', JSON.stringify(data));
       if (!data.ParsedResults || !data.ParsedResults[0]) {
         status.textContent = '⚠️ No se pudo leer el ticket';
         status.style.color = 'var(--amber)';
