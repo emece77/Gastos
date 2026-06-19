@@ -848,25 +848,13 @@ function procesarTicket(input) {
   status.textContent = '🔍 Leyendo...';
   status.style.color = 'var(--accent-text)';
 
-  // Convertir imagen a base64 para OCR.space
-  var reader2 = new FileReader();
-  reader2.onload = function(e) {
-    var base64 = e.target.result;
-    status.textContent = '🔍 Analizando...';
-
-    // Convertir base64 a blob para multipart upload
-    var byteString = atob(base64.split(',')[1]);
-    var mimeType = base64.split(',')[0].split(':')[1].split(';')[0];
-    var ab = new ArrayBuffer(byteString.length);
-    var ia = new Uint8Array(ab);
-    for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-    var blob = new Blob([ab], { type: mimeType });
+  status.textContent = '🔍 Analizando...';
 
     var formData = new FormData();
     formData.append('apikey', 'K84350602688957');
     formData.append('language', 'spa');
     formData.append('isOverlayRequired', 'false');
-    formData.append('file', blob, 'ticket.jpg');
+    formData.append('file', file, 'ticket.jpg');
 
     fetch('https://api.ocr.space/parse/image', {
       method: 'POST',
@@ -990,8 +978,6 @@ function procesarTicket(input) {
       status.style.color = 'var(--neg)';
       console.error('OCR error:', err);
     });
-  };
-  reader2.readAsDataURL(file);
 }
 
 // Service Worker
